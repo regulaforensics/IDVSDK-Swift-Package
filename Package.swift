@@ -16,7 +16,7 @@ let package = Package(
         .package(
             name: "IDVModule",
             url: "https://github.com/regulaforensics/IDVModule-Swift-Package.git",
-            .exact(Version(stringLiteral: "3.1.1203"))
+            from: "3.1.1203"
         ),
         .package(
             name: "IDVCoreSDK",
