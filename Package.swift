@@ -4,23 +4,36 @@ import PackageDescription
 let packageName = "IDVSDK"
 
 let package = Package(
-    name: "IDVSDK",
-    platforms: [.iOS(.v13)],
+    name: packageName,
+    platforms: [.iOS(.v14)],
     products: [
         .library(
-            name: "IDVSDK",
-            targets: ["\(packageName)Common"]),
+            name: packageName,
+            targets: ["\(packageName)Common"]
+        ),
     ],
     dependencies: [
-        .package(name: "IDVModule", url: "https://github.com/regulaforensics/IDVModule-Swift-Package.git", .exact(Version(stringLiteral: "2.5.539"))),
-        .package(name: "IDVCoreSDK", url: "https://github.com/regulaforensics/IDVCoreSDK-Swift-Package.git", .exact(Version(stringLiteral: "2.5.239"))),
+        .package(
+            name: "IDVModule",
+            url: "https://github.com/regulaforensics/IDVModule-Swift-Package.git",
+            .exact(Version(stringLiteral: "3.1.1203"))
+        ),
+        .package(
+            name: "IDVCoreSDK",
+            url: "https://github.com/regulaforensics/IDVCoreSDK-Swift-Package.git",
+            .exact(Version(stringLiteral: "3.1.256"))
+        ),
     ],
     targets: [
-        .binaryTarget(name: "IDVSDK", url: "https://pods.regulaforensics.com/IDVSDK/2.5.800/IDVSDK-2.5.800.zip", checksum: "b46defd37d6eced3526ad76f6bfd34cdd811ffe5dc0774af4a0b2414c6cc9dbe"),
+        .binaryTarget(
+            name: packageName,
+            url: "https://pods.regulaforensics.com/\(packageName)/3.1.1492/\(packageName)-3.1.1492.zip",
+            checksum: "c2c42c41da56e60f3c070112451202bd9a14725b1041e9876b3ea9d355105925"
+        ),
         .target(
             name: "\(packageName)Common",
             dependencies: [
-                .target(name: "IDVSDK"),
+                .target(name: packageName),
                 .product(name: "IDVModule", package: "IDVModule"),
                 .product(name: "IDVCoreSDK", package: "IDVCoreSDK")
             ],
