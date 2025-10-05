@@ -1,221 +1,294 @@
-# **IDV SDK Integration Guide**
+# IDV SDK Integration Guide
 
-## **Introduction**
+## Introduction
 
 This guide provides step-by-step instructions on integrating the **IDV SDK** into an iOS application. 
 It covers initialization, API configuration, workflow setup, and starting the ID verification process.
 
 ---
 
-## **1. Prerequisites**
+## Prerequisites
 
 Before integrating the SDK, ensure the following:
 
-- iOS **SDK o+**
-- **Camera permission** enabled
-- Regula IDVSDK dependency added to `Podfile` 
+- The application Minimum Deployment Target is **iOS 14** and above
+- The SDK includes multiple modules (e.g., for liveness, face matching, document reader). Depending on your use case, you may need to include additional pods or follow the module-specific setup instructions from the documentation. Always check which modules are required for your workflow.
+---
 
+## Installation
 
-2. In your **app-level** `build.gradle.kts`, add the following dependency:
+### Cocoapods
 
-```kotlin
-implementation("com.regula.documentreader.core:fullrfid:7.5+@aar") {}
-implementation("com.regula.idv:docreader:1.0.29@aar") {
-        isTransitive = true
-    }
-implementation("com.regula.idv:api:1.0.17@aar") {
-        isTransitive = true
-    }
+Add the base dependency into your Podfile:
+
+```
+target 'YourAppTarget' do
+  use_frameworks!
+  
+  pod 'IDVSDK'
+end
 ```
 
-Sync Gradle after adding the dependencies.
+Then install it:
+
+```
+pod install
+```
+
+
+#### Optional Modules
+
+##### 1. Document Reader module
+
+[Document Reader module installation guide](https://github.com/regulaforensics/IDVDocumentReader-Swift-Package/blob/main/README.md)
+
+##### 2. Face SDK module
+
+[Face SDK module installation guide](https://github.com/regulaforensics/IDVFaceSDK-Swift-Package/blob/main/README.md)
+
+### Swift Package Manager (SPM)
+
+#### Swift Package Collection
+
+Swift Package Collection is a set of all Regula products in one place.
+
+To add Regula Swift Package Collection to your project, run the following command in Terminal:
+
+```
+swift package-collection add https://pods-master.regulaforensics.com/SPM/PodsCollection-signed.json
+```
+
+or in Xcode:
+
+1. Navigate to File > Add Package Dependencies.
+
+2. In the prompt that appears, click plus.
+
+3. Select Add Package Collection.
+
+4. In the prompt that appears, enter the collection URL:
+
+```
+https://pods.regulaforensics.com/SPM/PodsCollection-signed.json
+```
+
+5. Click Load and then Add Collection.
+
+6. Select the package you want to add.
+
+7. Select the version you want to use. For new projects, we recommend using the newest version.
+
+8. Select the project you want to add the package.
+
+9. Click Add Package.
+
+Once you're finished, Xcode will begin downloading and resolving dependencies.
+
+#### Add Packages Separately
+
+You can add each package individually instead of using the collection. To do so, follow these steps:
+
+1. In Xcode, naviate to File > Add Package Dependencies.
+
+2. In the prompt that appears, enter the API package URL:
+
+```
+https://github.com/regulaforensics/IDVSDK-Swift-Package
+```
+
+3. Select the version you want to use. For new projects, we recommend using the newest version.
+
+4. Select the project you want to add the package.
+
+5. Click Add Package.
+
+6. **If you need IDVDocumentReader module -** [Document Reader module installation guide](https://github.com/regulaforensics/IDVDocumentReader-Swift-Package/blob/main/README.md)
+
+7. **If you need IDVFaceSDK module -** [Face SDK module installation guide](https://github.com/regulaforensics/IDVFaceSDK-Swift-Package/blob/main/README.md)
+
+Once you're finished, Xcode will begin downloading and resolving dependencies.
 
 ---
 
-## **3. Update AndroidManifest.xml**
+## Initialize Regula IDV SDK
 
-Ensure the following permissions and features are included:
+Initialize the SDK:
 
-```xml
-<uses-feature android:name="android.hardware.camera" android:required="true" />
-<uses-permission android:name="android.permission.CAMERA"/>
-```
+```swift
+import IDVSDK
 
----
-
-## **4. Initiate the Handshake with IDCanopy**
-In your `MainActivity.kt`, initiate the Handshake with IDCanopy by calling the **https://api-umbrella.io/api/sdk/document/handshake** endpoint.
-
-An example of the Hanshake function in your `MainActivity.kt` could look like this:
-
-```kotlin
-import io.ktor.client.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.client.engine.cio.*
-import io.ktor.http.*
-import kotlinx.coroutines.*
-
-class MainActivity : AppCompatActivity() {
-        runBlocking {
-        callHandshakeAPI()
-    }
-}
-
-suspend fun callHandshakeAPI() {
-    val idcHandshakeUrl = "https://api-umbrella.io/api/sdk/document/handshake"
-    val idcCustomerId = "your customer id from IDCanopy"
-    val client = HttpClient(CIO) // CIO is a coroutine-based engine
-
-    try {
-        val response: HttpResponse = client.post(idcHandshakeUrl) {
-            contentType(ContentType.Application.Json)
-            setBody(
-                """
-                {
-                    "customerId": idcCustomerId,
-                    "processName": "customWL",
-                    "validationData": {
-                        "fullName": "",
-                        "firstName": "Matthias",
-                        "lastName": "Wolgemar",
-                        "dob": "1985-11-03",
-                        "disabilityCheck": "True"
-                    }
-                }
-                """.trimIndent()
-            )
-        }
-
-        println("Response status: ${response.status}")
-        println("Response body: ${response.bodyAsText()}")
-    } catch (e: Exception) {
-        println("Error: ${e.message}")
-    } finally {
-        client.close()
-    }
-}
-```
-You will receive a `JSON` response with these 3 fields:
-
-```JSON
-{
-    "transaction_id": "6c9e5700-d4bb-4e72-8523-882fb2128f91",
-    "ui_handle": "59ec73a4-cea5-4cdd-892a-fe3504bedd3e",
-    "init_timestamp": "20/03/2025, 12:11:25"
-}
-```
-The **transaction_id** is your unique transactionId with IDCanopy.
-
-## **5. Initialize Regula IDV SDK**
-
-In your `MainActivity.kt`, initialize the SDK with the **Document Reader Module**:
-
-```kotlin
-import com.regula.idv.api.IdvSdk
-import com.regula.idv.docreader.DocReaderModule
-import com.regula.idv.api.config.IdvInitConfig
-
-class MainActivity : AppCompatActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        val config = IdvInitConfig(listOf(DocReaderModule()))
-        IdvSdk.instance().initialize(this, config) {
-            // Handle initialization result
-        }
-    }
-}
-```
-
----
-
-## **6. Configure API Settings**
-
-Before using the SDK, configure the API connection:
-
-```kotlin
-import com.regula.idv.api.config.IdvUrlConfig
-import com.regula.idv.api.config.IdvConnectionConfig
-
-val HOST = "your_host"
-val USER_NAME = "your_username"
-val PASSWORD = "your_password"
-val IS_SECURE = true
-
-IdvSdk.instance().configure(this, IdvConnectionConfig(HOST, USER_NAME, PASSWORD, IS_SECURE)) {}
-```
-The values for `your_username` and `your_password` will be shared with you and is different from your IDCanopy Customer Id.
-
----
-
-## **7. Prepare and Start an ID Verification Workflow**
-
-Prepare a workflow before starting the verification:
-
-`your_workflow_id` is dependent on wheter the disability check is on or off.
-
-If disablity check in ON, the value of `your_workflow_id` will be "WorkflowXXX", otherwise, it will be "WorkflowYYY". 
-
-**We will confirm the workflow ids before we start integration.**
-
-```kotlin
-import com.regula.idv.api.config.IdvPrepareWorkflowConfig
-
-val workflowId = "your_workflow_id"
-IdvSdk.instance().prepareWorkflow(this, IdvPrepareWorkflowConfig(workflowId)) {}
-```
-
-Start the workflow when ready:
-
-```kotlin
-IdvSdk.instance().startWorkflow(this) { sessionResult, error ->
-    if (error == null) {
-        // Handle successful verification
-    } else {
-        // Handle error
-    }
-}
-```
-
-With metadata: 
-
-In the metadata, you will include the **ui_handle** that you received from the handshake with IDCanopy as `key1` and `value1` and the language selection as `key2` and `value2`. 
-
-For example: 
-
-`key1` would be written as **"ui_handle"**
-
-`value1` would be written as **"59ec73a4-cea5-4cdd-892a-fe3504bedd3e"**
-
-`key2` would be written as **"locale"**
-
-`value2` would be written as **"en-us"** for English or **"de-DE"** for German
-
-```kotlin
-val metadata = JSONObject()
-metadata.put("key", "value")
-IdvSdk.instance().startWorkflow(this, metadata) { sessionResult, error ->
-    if (error == null) {
-        // Handle successful verification
-    } else {
-        // Handle error
+IDV.shared.initialize { result in
+    switch result {
+    case .success:
+        print("IDV SDK initialized successfully")
+    case .failure(let error):
+        print("Initialization failed: \(error)")
     }
 }
 ```
 
 ---
 
-## **8. Best Practices & Troubleshooting**
+## Configure API Settings
 
-- **Ensure all necessary dependencies** are included in `build.gradle.kts`.
-- **Handle API failures** by checking the `sessionResult` and `error` callbacks.
-- **Grant camera permissions** before starting the workflow.
-- **Use proper credentials** when configuring `IdvConnectionConfig`.
+Before using the SDK, configure the API connection using one of the following methods:
+
+
+### 1. Username & Password
+```swift
+let connectionConfig = CredentialsConnectionConfig(
+    host: "your_host",
+    username: "your_username",
+    password: "your_password"
+)
+
+IDV.shared.configure(with: connectionConfig) { result in
+    switch result {
+    case .success:
+        print("Configured successfully")
+    case .failure(let error):
+        print("Configuration failed: \(error)")
+    }
+}
+```
+
+
+### 2. Token-based
+```swift
+let tokenConfig = TokenConnectionConfig(url: URL(string: "your_token_url")!)
+
+IDV.shared.configure(with: tokenConfig) { result in
+    switch result {
+    case .success(let workflowIds):
+        print("Available workflows: \(workflowIds)")
+    case .failure(let error):
+        print("Configuration failed: \(error)")
+    }
+}
+```
+
+
+### 3. API Key
+```swift
+let apiKeyConfig = ApiKeyConnectionConfig(apiKey: "your_api_key")
+
+IDV.shared.configure(with: apiKeyConfig) { result in
+    switch result {
+    case .success:
+        print("Configured successfully with API key")
+    case .failure(let error):
+        print("Configuration failed: \(error)")
+    }
+}
+```
 
 ---
 
-## **Conclusion**
+## Retrieve, Prepare and Start Verification Workflow
 
-This guide provides all necessary steps to integrate the **Regula IDV SDK** into an Android application. By following these instructions, developers can build a document verification feature using Regula’s technology.
 
-For further details, refer to the **official Regula IDV SDK documentation** or contact their support team.
+### Retrieve Available Workflows
+
+```swift
+IDV.shared.getWorkflows { result in
+    switch result {
+    case .success(let workflows):
+        print("Available workflows: \(workflows)")
+    case .failure(let error):
+        print("Failed to fetch workflows: \(error)")
+    }
+}
+```
+
+### Prepare a Workflow
+
+```swift
+let workflowConfig = PrepareWorkflowConfig(workflowId: "your_workflow_id")
+
+IDV.shared.prepareWorkflow(by: workflowConfig) { result in
+    switch result {
+    case .success(let workflow):
+        print("Workflow prepared: \(workflow.id)")
+    case .failure(let error):
+        print("Failed to prepare workflow: \(error)")
+    }
+}
+```
+
+### Start Workflow
+
+```swift
+IDV.shared.startWorkflow(presenter: presenterViewController) { result in
+    switch result {
+    case .success(let workflowResult):
+        print("Verification finished. Session ID: \(workflowResult.sessionId)")
+    case .failure(let error):
+        print("Verification failed: \(error)")
+    }
+}
+```
+
+Optionally, you can pass a StartWorkflowConfig with metadata:: 
+
+```swift
+var config = StartWorkflowConfig.default()
+config.metadata = ["key": "value"]
+
+IDV.shared.startWorkflow(presenter: self, config: config) { result in
+    switch result {
+    case .success(let workflowResult):
+        print("Workflow completed successfully")
+    case .failure(let error):
+        print("Workflow failed: \(error)")
+    }
+}
+```
+
+To start workflow with locale language:
+
+```swift
+var config = StartWorkflowConfig.default()
+config.locale = "en"
+IDV.shared.startWorkflow(presenter: self, config: config) { result in
+    switch result {
+    case .success(let workflowResult):
+        print("Workflow completed successfully")
+    case .failure(let error):
+        print("Workflow failed: \(error)")
+    }
+}
+```
+
+---
+
+## Deinitialize SDK
+
+When the SDK is no longer needed (e.g., logout):
+
+```swift
+IDV.shared.deinitialize { result in
+    switch result {
+    case .success:
+        print("SDK deinitialized")
+    case .failure(let error):
+        print("Failed to deinitialize: \(error)")
+    }
+}
+```
+
+---
+
+## Best Practices & Troubleshooting
+
+- Always initialize before configuring or preparing workflows
+- Handle error callbacks (Result.failure) properly
+- Ensure camera permissions are granted before starting workflows
+- For production apps, implement secure storage for tokens/credentials
+
+---
+
+## Conclusion
+
+This guide provides all necessary steps to integrate the **Regula IDV SDK** into an iOS application. By following these instructions, developers can build a document verification feature using Regula’s technology.
+
+For further details, refer to the [official Regula IDV SDK documentation](https://docs.regulaforensics.com/develop/idv/) or contact their support team.
