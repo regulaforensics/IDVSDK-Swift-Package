@@ -22,6 +22,8 @@ Before integrating the SDK, ensure the following:
 Add the base dependency into your Podfile:
 
 ```
+source 'https://github.com/regulaforensics/podspecs.git'
+
 target 'YourAppTarget' do
   use_frameworks!
   
