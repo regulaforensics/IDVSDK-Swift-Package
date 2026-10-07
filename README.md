@@ -11,7 +11,7 @@ It covers initialization, API configuration, workflow setup, and starting the ID
 
 Before integrating the SDK, ensure the following:
 
-- The application Minimum Deployment Target is **iOS 14** and above
+- The application Minimum Deployment Target is **iOS 15** and above
 - The SDK includes multiple modules (e.g., for liveness, face matching, document reader). Depending on your use case, you may need to include additional pods or follow the module-specific setup instructions from the documentation. Always check which modules are required for your workflow.
 ---
 

@@ -1,12 +1,13 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.5
 import PackageDescription
 
 let packageName = "IDVSDK"
+let binaryTargetName = "IDVSDKStage"
 
 let package = Package(
     name: packageName,
     platforms: [
-        .iOS(.v14)
+        .iOS(.v15)
     ],
     products: [
         .library(
@@ -18,19 +19,19 @@ let package = Package(
         .package(
             name: "IDVModule",
             url: "https://github.com/regulaforensics/IDVModule-Swift-Package.git",
-            from: "3.9.1898"
+            from: "3.10.2026-rc"
         ),
     ],
     targets: [
         .binaryTarget(
-            name: packageName,
-            url: "https://pods.regulaforensics.com/\(packageName)/3.9.1987/\(packageName)-3.9.1987.zip",
-            checksum: "fa2057c0874cacaa182521f855a18491346bafb2d0dd7b4aca135f3d09ca0068"
+            name: binaryTargetName,
+            url: "https://pods.regulaforensics.com/Stage/IDVSDKStage/3.10.2107/IDVSDKStage-3.10.2107.zip",
+            checksum: "4e3a3ee9e5a583e9c5a4c192d00454b7c10253c631649f5314acfe64fcb2e367"
         ),
         .target(
             name: "\(packageName)Common",
             dependencies: [
-                .target(name: packageName),
+                .target(name: binaryTargetName),
                 .product(name: "IDVModule", package: "IDVModule"),
             ],
             path: "Sources",
